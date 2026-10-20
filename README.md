@@ -100,9 +100,15 @@ npx wrangler secret put SUBSCRIBE_TOKEN   # optionnel
 npx wrangler deploy
 ```
 
-Puis dans SeatShop → **Paramètres → Notifications**, collez l’URL du Worker.
-Le Worker vérifie les ventes chaque minute et envoie les notifications aux
-appareils abonnés. Le plan gratuit Cloudflare suffit largement.
+Puis dans SeatShop → **Paramètres → Notifications**, collez l’URL du Worker
+et le jeton d’abonnement. Le Worker vérifie les ventes chaque minute et envoie
+les notifications aux appareils abonnés. Le plan gratuit Cloudflare suffit
+largement.
+
+Le premier passage du Worker mémorise les ventes existantes sans les notifier.
+Pour rattraper la dernière vente après l’installation, utilisez **Renvoyer la
+dernière vente** dans les paramètres : la notification part vers tous les
+appareils abonnés et ne sera pas répétée par le cron.
 
 Détails, routes et dépannage : [`push-worker/README.md`](push-worker/README.md).
 
