@@ -362,3 +362,25 @@ export async function unsubscribeFromPush(serverUrl: string, token?: string): Pr
 export async function sendTestPush(serverUrl: string, token?: string): Promise<{ sent?: number }> {
   return serverFetch<{ sent?: number }>(serverUrl, '/api/test', { method: 'POST' }, token);
 }
+
+export type NotifyLatestResult = {
+  ok?: boolean;
+  sent?: number;
+  failed?: number;
+  removed?: number;
+  saleId?: string;
+  createdAt?: string;
+  message?: string;
+};
+
+export async function notifyLatestSale(
+  serverUrl: string,
+  token?: string,
+): Promise<NotifyLatestResult> {
+  return serverFetch<NotifyLatestResult>(
+    serverUrl,
+    '/api/notify-latest',
+    { method: 'POST' },
+    token,
+  );
+}

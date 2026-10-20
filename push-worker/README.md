@@ -90,6 +90,10 @@ https://seatshop-push.votre-compte.workers.dev
 
 Le cron Cloudflare s’exécute ensuite toutes les minutes. Le premier passage
 mémorise les ventes existantes et n’envoie rien ; les suivantes sont notifiées.
+Pour rattraper la dernière vente après l’installation (ou une notification
+manquée), utilisez le bouton **Renvoyer la dernière vente** dans les réglages
+de SeatShop. Le Worker l’envoie à tous les appareils abonnés et la marque comme
+traitée pour éviter un doublon au passage suivant du cron.
 
 ## Routes
 
@@ -101,6 +105,7 @@ mémorise les ventes existantes et n’envoie rien ; les suivantes sont notifié
 | `POST` | `/api/subscribe` | Enregistre un abonnement push |
 | `POST` | `/api/unsubscribe` | Supprime un abonnement |
 | `POST` | `/api/test` | Envoie une notification de test |
+| `POST` | `/api/notify-latest` | Renvoie la dernière vente à tous les abonnés |
 
 Les routes sensibles acceptent l’en-tête `X-SeatShop-Token` si
 `SUBSCRIBE_TOKEN` est défini.

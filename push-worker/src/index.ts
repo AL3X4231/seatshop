@@ -518,6 +518,20 @@ function newestSaleDate(sales: ApiSale[], fallback: string | null): string | nul
   return newest;
 }
 
+async function fetchLatestSale(
+  env: Env,
+): Promise<(ApiSale & { id: string; created_at: string }) | null> {
+  const { sales } = await fetchRecentSales(env, null);
+  let latest: (ApiSale & { id: string; created_at: string }) | null = null;
+  for (const sale of sales) {
+    if (!sale?.id || !sale?.created_at) continue;
+    if (!latest || Date.parse(sale.created_at) > Date.parse(latest.created_at)) {
+      latest = sale as ApiSale & { id: string; created_at: string };
+    }
+  }
+  return latest;
+}
+
 async function checkSales(env: Env): Promise<void> {
   if (!env.SEATIKS_API_KEY) {
     throw new Error('Le secret SEATIKS_API_KEY n’est pas configuré.');
@@ -685,6 +699,70 @@ async function handleTest(request: Request, env: Env): Promise<Response> {
   return json({ ok: true, sent: result.sent, removed: result.removed });
 }
 
+async function handleNotifyLatest(request: Request, env: Env): Promise<Response> {
+  if (!authorized(request, env)) return errorResponse('Jeton d’abonnement invalide.', 401);
+
+  const latest = await fetchLatestSale(env);
+  if (!latest) {
+    return json(
+      { ok: false, sent: 0, failed: 0, removed: 0, error: 'Aucune vente trouvée dans Seatiks.' },
+      404,
+    );
+  }
+
+  const subscriptions = await listSubscriptions(env);
+  if (!subscriptions.length) {
+    return json({
+      ok: true,
+      sent: 0,
+      failed: 0,
+      removed: 0,
+      saleId: latest.id,
+      createdAt: latest.created_at,
+      message: 'Aucun appareil abonné au push.',
+    });
+  }
+
+  const result = await broadcast(env, subscriptions, notificationForSale(env, latest));
+  const state = await loadState(env);
+
+  // Le rattrapage manuel vaut notification : on évite qu’un prochain passage
+  // du cron renvoie la même vente aux appareils qui viennent de la recevoir.
+  if (result.sent > 0 && !state.seenSales.includes(latest.id)) {
+    state.seenSales = [latest.id, ...state.seenSales].slice(0, 600);
+  }
+  state.lastSaleAt = newestSaleDate([latest], state.lastSaleAt);
+  state.lastError =
+    result.failed || result.removed
+      ? result.lastError || `${result.failed} envoi(s) en échec, ${result.removed} abonnement(s) retiré(s).`
+      : null;
+  await saveState(env, state);
+
+  if (result.failed) {
+    return json(
+      {
+        ok: false,
+        sent: result.sent,
+        failed: result.failed,
+        removed: result.removed,
+        saleId: latest.id,
+        createdAt: latest.created_at,
+        error: result.lastError || 'Certains envois ont échoué.',
+      },
+      502,
+    );
+  }
+
+  return json({
+    ok: true,
+    sent: result.sent,
+    failed: 0,
+    removed: result.removed,
+    saleId: latest.id,
+    createdAt: latest.created_at,
+  });
+}
+
 async function handleStatus(request: Request, env: Env): Promise<Response> {
   if (!authorized(request, env)) return errorResponse('Jeton d’abonnement invalide.', 401);
 
@@ -734,6 +812,9 @@ export default {
       }
       if (request.method === 'POST' && path === '/api/test') {
         return await handleTest(request, env);
+      }
+      if (request.method === 'POST' && path === '/api/notify-latest') {
+        return await handleNotifyLatest(request, env);
       }
       return errorResponse('Route introuvable.', 404);
     } catch (error) {

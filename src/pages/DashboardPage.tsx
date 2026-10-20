@@ -11,6 +11,7 @@ import {
   Clock3,
   Download,
   PackageCheck,
+  Server,
   ShoppingBag,
   Sparkles,
   Ticket,
@@ -42,6 +43,7 @@ import {
   playSaleSound,
   requestNotificationPermission,
 } from '../lib/notifications';
+import { loadPushEndpoint } from '../lib/storage';
 import { PageHeader } from '../components/PageHeader';
 import { RevenueChart, type RevenuePoint } from '../components/RevenueChart';
 import { Sparkline } from '../components/Sparkline';
@@ -240,7 +242,11 @@ export function DashboardPage() {
     const permission = await requestNotificationPermission();
     setNotifPermission(permission);
     if (permission === 'granted') {
-      toast({ title: 'Notifications activées', message: 'Vous serez alerté des nouvelles ventes.', tone: 'success' });
+      toast({
+        title: 'Notifications autorisées',
+        message: 'Pour être alerté app fermée, activez aussi le push Cloudflare dans les réglages.',
+        tone: 'success',
+      });
     } else if (permission === 'denied') {
       toast({
         title: 'Notifications bloquées',
@@ -260,6 +266,7 @@ export function DashboardPage() {
   };
 
   const showInstallBanner = !installed && !settings.installBannerDismissed && mode === 'live';
+  const backgroundPushReady = Boolean(settings.pushServerUrl && loadPushEndpoint());
 
   return (
     <div className="page">
@@ -345,6 +352,24 @@ export function DashboardPage() {
           >
             {!settings.soundEnabled ? 'Activer le son' : 'Activer les alertes'}
           </button>
+        </div>
+      ) : null}
+
+      {mode === 'live' && notifPermission === 'granted' && !backgroundPushReady ? (
+        <div className="alert-strip">
+          <span className="alert-strip-icon">
+            <Server size={18} />
+          </span>
+          <div className="alert-strip-text">
+            <strong>Push en arrière-plan inactif</strong>
+            <span>
+              Autoriser les notifications ne suffit pas : connectez le Worker Cloudflare pour être
+              alerté quand l’application est fermée.
+            </span>
+          </div>
+          <Link to="/settings#push" className="btn btn-secondary btn-sm">
+            Configurer
+          </Link>
         </div>
       ) : null}
 

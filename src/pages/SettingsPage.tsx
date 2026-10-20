@@ -15,6 +15,7 @@ import {
   LockKeyhole,
   RefreshCw,
   RotateCcw,
+  Send,
   Server,
   Settings2,
   ShieldCheck,
@@ -39,6 +40,7 @@ import {
   currentPushSubscription,
   fetchPushServerStatus,
   notificationPermission,
+  notifyLatestSale,
   playSaleSound,
   requestNotificationPermission,
   sendTestPush,
@@ -121,6 +123,7 @@ export function SettingsPage() {
   const [serverStatus, setServerStatus] = useState<PushServerStatus | null>(null);
   const [permission, setPermission] = useState(() => notificationPermission());
   const [showPushHelp, setShowPushHelp] = useState(false);
+  const [confirmResend, setConfirmResend] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
   const storageUsed = useMemo(() => {
@@ -268,6 +271,33 @@ export function SettingsPage() {
       await refreshServerStatus();
     } catch (error) {
       setPushError(error instanceof Error ? error.message : 'Le test a échoué.');
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const resendLatest = async () => {
+    setConfirmResend(false);
+    setPushBusy(true);
+    setPushError(null);
+    try {
+      const result = await notifyLatestSale(
+        settings.pushServerUrl,
+        settings.pushToken || undefined,
+      );
+      const sent = result.sent || 0;
+      toast({
+        title: sent ? 'Dernière vente renvoyée' : 'Aucun appareil abonné',
+        message: sent
+          ? `Notification envoyée à ${sent} appareil(s).`
+          : result.message || 'Aucun appareil n’est encore abonné au push.',
+        tone: sent ? 'success' : 'info',
+      });
+      await refreshServerStatus();
+    } catch (error) {
+      setPushError(
+        error instanceof Error ? error.message : 'Impossible de renvoyer la dernière vente.',
+      );
     } finally {
       setPushBusy(false);
     }
@@ -596,6 +626,17 @@ export function SettingsPage() {
                         Déconnecter
                       </button>
                     </>
+                  ) : null}
+                  {settings.pushServerUrl ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setConfirmResend(true)}
+                      disabled={pushBusy}
+                    >
+                      <Send size={15} />
+                      Renvoyer la dernière vente
+                    </button>
                   ) : null}
                 </div>
                 {pushError ? <div className="form-error">{pushError}</div> : null}
@@ -946,6 +987,33 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <Modal
+        open={confirmResend}
+        onClose={() => setConfirmResend(false)}
+        title="Renvoyer la dernière vente ?"
+        subtitle="Tous les appareils abonnés au push recevront la notification de la dernière vente enregistrée dans Seatiks."
+        size="sm"
+        footer={
+          <div className="modal-actions">
+            <button type="button" className="btn btn-secondary" onClick={() => setConfirmResend(false)}>
+              Annuler
+            </button>
+            <button type="button" className="btn btn-primary" onClick={() => void resendLatest()}>
+              <Send size={15} />
+              Renvoyer
+            </button>
+          </div>
+        }
+      >
+        <div className="confirm-box">
+          <BellRing size={22} />
+          <p>
+            Utile après une coupure ou pour rattraper une vente manquée. Chaque appareil abonné ne
+            recevra qu’une seule notification pour cette vente.
+          </p>
+        </div>
+      </Modal>
 
       <Modal
         open={confirmReset}
