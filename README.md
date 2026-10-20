@@ -2,6 +2,8 @@
 
 **Votre administration de vente de billets, façon Shopify, pour l’API Seatiks.**
 
+**Application en ligne : [al3x4231.github.io/seatshop](https://al3x4231.github.io/seatshop/)**
+
 SeatShop est une PWA mobile-first en lecture seule qui affiche vos ventes,
 annonces et événements Seatiks en direct, avec le vrai son de vente « cha-ching »
 de Shopify et des notifications installables sur iPhone et Android.
@@ -65,7 +67,7 @@ Si vous partagez votre écran ou vos logs, masquez la clé.
 
 ## Installer sur iPhone
 
-1. Ouvrez l’URL publique de SeatShop **dans Safari**.
+1. Ouvrez [al3x4231.github.io/seatshop](https://al3x4231.github.io/seatshop/) **dans Safari**.
 2. Touchez **Partager** → **Sur l’écran d’accueil** → **Ajouter**.
 3. Ouvrez l’application depuis l’écran d’accueil.
 4. Autorisez les notifications quand SeatShop le propose.
