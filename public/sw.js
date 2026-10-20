@@ -32,7 +32,9 @@ self.addEventListener('activate', (event) => {
     (async () => {
       const keys = await caches.keys();
       await Promise.all(
-        keys.filter((key) => !key.startsWith(VERSION)).map((key) => caches.delete(key)),
+        keys
+          .filter((key) => key.startsWith('seatshop-') && !key.startsWith(VERSION))
+          .map((key) => caches.delete(key)),
       );
       await self.clients.claim();
     })(),
@@ -59,7 +61,8 @@ async function networkFirstNavigation(request) {
 
 async function cacheFirst(request) {
   const cache = await caches.open(RUNTIME_CACHE);
-  const cached = await cache.match(request);
+  const shell = await caches.open(SHELL_CACHE);
+  const cached = (await cache.match(request)) || (await shell.match(request));
   if (cached) return cached;
   const response = await fetch(request);
   if (response && response.ok && response.type === 'basic') {
