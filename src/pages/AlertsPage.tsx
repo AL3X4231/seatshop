@@ -203,8 +203,8 @@ export function AlertsPage() {
           <div className="card alerts-status-card alerts-status-install">
             <img src={`${import.meta.env.BASE_URL}icons/icon-180.png`} alt="" width={34} height={34} />
             <div className="alerts-status-text">
-              <strong>Sur iPhone ?</strong>
-              <span>Installez SeatShop pour les notifications push iOS.</span>
+              <strong>Installer SeatShop</strong>
+              <span>Ajoutez l’app à l’écran d’accueil pour les notifications push.</span>
             </div>
             <button type="button" className="btn btn-secondary btn-sm" onClick={openInstall}>
               Installer

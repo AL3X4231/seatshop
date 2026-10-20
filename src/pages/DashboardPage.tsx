@@ -301,7 +301,7 @@ export function DashboardPage() {
           <div className="install-banner-text">
             <strong>Emportez votre boutique dans votre poche</strong>
             <span>
-              Installez SeatShop sur votre iPhone — notifications iOS et son de vente inclus.
+              Installez SeatShop sur votre écran d’accueil — notifications et son de vente inclus.
             </span>
           </div>
           <div className="install-banner-actions">

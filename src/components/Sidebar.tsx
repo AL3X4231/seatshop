@@ -167,7 +167,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <Download size={17} />
           </span>
           <span className="sidebar-install-text">
-            <strong>Installer sur iPhone</strong>
+            <strong>Installer l’application</strong>
             <small>Gratuit · notifications incluses</small>
           </span>
           <ChevronRight size={15} />
