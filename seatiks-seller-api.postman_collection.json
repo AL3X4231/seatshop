@@ -1,0 +1,1667 @@
+{
+  "info": {
+    "name": "Seatiks Seller API",
+    "description": "The Seatiks Seller API lets brokers and point-of-sale systems manage their Seatiks inventory\nprogrammatically: search events, create and update listings in bulk, receive sales through signed\nwebhooks, deliver tickets and read their wallet.\n\n**Authentication.** Every request carries an API key, created in *Settings → Developers*:\n`Authorization: Bearer stk_live_…` (or the `X-Api-Key` header). Keys carry scopes; a request that\nneeds a scope the key does not have fails with `403 insufficient_scope`.\n\n**Live access.** Test keys are available to every verified seller. Live keys (`stk_live_…`) and live\nwebhook endpoints are granted on request: send a request from *Settings → Developers*, our team\nreviews it and replies by email. Until access is granted, and if it is later removed, live calls\nfail with `403 live_access_required`.\n\n**Sandbox.** Keys starting with `stk_test_` run against an isolated sandbox: same endpoints, same\nshapes, but a fictional event catalog (stable ids from `900000000001`, dates always 3 to 180 days\nahead, full section maps). Listings are never published to any marketplace and nothing touches your\nwallet. Use `POST /v1/sandbox/sales` to simulate a sale and receive the webhook.\n\n**Errors.** Every error has the shape `{ \"error\": { \"code\", \"message\", \"details\"? }, \"request_id\" }`.\nQuote `request_id` (also in the `X-Request-Id` header) when contacting support.\n\n**Rate limits.** 300 requests per minute per key, 600 per account, 30 bulk operations per minute per\naccount. Responses carry `X-RateLimit-Limit`,\n`X-RateLimit-Remaining`, `X-RateLimit-Reset`; a `429` carries `Retry-After`.\n\n**Pagination.** List endpoints return `{ object: \"list\", data, has_more, next_cursor }`. Pass\n`next_cursor` back as `cursor` to fetch the next page.\n\n**Webhooks.** Seatiks POSTs events to your HTTPS endpoint, signed with\n`Seatiks-Signature: t=<unix>,v1=<hex>` where `hex = HMAC_SHA256(secret, \"<t>.<raw body>\")`. Reject\nevents older than 5 minutes. Retries use exponential backoff for about 10 hours; events may arrive\nmore than once and out of order, so deduplicate on the event `id` and read the sale's `status`.\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "seatiks-seller-api-v1"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('no server error', () => pm.expect(pm.response.code).to.be.below(500));",
+          "pm.test('JSON body', () => pm.response.json());",
+          "if (pm.response.code >= 400) pm.test('error envelope', () => { const b = pm.response.json(); pm.expect(b.error.code).to.be.a('string'); pm.expect(b.request_id).to.be.a('string'); });"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.seatiks.com"
+    },
+    {
+      "key": "apiKey",
+      "value": "stk_test_REPLACE_ME"
+    },
+    {
+      "key": "eventId",
+      "value": ""
+    },
+    {
+      "key": "sectionKey",
+      "value": ""
+    },
+    {
+      "key": "listingId",
+      "value": ""
+    },
+    {
+      "key": "saleId",
+      "value": ""
+    },
+    {
+      "key": "webhookId",
+      "value": ""
+    },
+    {
+      "key": "deliveryId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Account",
+      "item": [
+        {
+          "name": "Describe the API key in use",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "me"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "Describe the API key in use"
+          },
+          "response": []
+        },
+        {
+          "name": "Your team members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/team",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "team"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "Your team members\n\nThe members (sub-sellers) of your team, by name — the choices of the dashboard's \"Member\"\nfilter. Use their `id` in `member=` on `GET /v1/listings` and `GET /v1/sales`, and to read\nthe `member` of a listing or a sale. Your own listings and sales are `owner`.\n\nAvailable to the account owner, and to a team member who sees all the team's listings or\nsales, with a key that has `listings:read` or `sales:read`. A member who only sees their own\ngets `403 forbidden`.\n"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "Search upcoming events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "events"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Case-insensitive match on the event name."
+                },
+                {
+                  "key": "date_from",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Defaults to today."
+                },
+                {
+                  "key": "date_to",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "country",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "listable",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Only events that accept listings."
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "disabled": true,
+                  "description": "`next_cursor` from the previous page."
+                }
+              ]
+            },
+            "description": "Search upcoming events\n\nRequires `events:read`. Only events with `listable: true` accept listings. With a `stk_test_` key, returns the fictional sandbox catalog only."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = (pm.response.json().data || []).find((x) => x.listable); if (e && !pm.collectionVariables.get('eventId')) pm.collectionVariables.set('eventId', e.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get an event and its section catalog",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/events/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "events",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{eventId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Get an event and its section catalog\n\nThe `sections[].key` values are what `section` expects when creating a listing. With a `stk_test_` key, only sandbox catalog ids (from `900000000001`) exist; any other id returns 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const s = (pm.response.json().sections || [])[0]; if (s && !pm.collectionVariables.get('sectionKey')) pm.collectionVariables.set('sectionKey', s.key);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Listings",
+      "item": [
+        {
+          "name": "Restrictions, features and benefits — the accepted ids",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listing-attributes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listing-attributes"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "Restrictions, features and benefits — the accepted ids\n\nThe only values accepted in a listing's `restrictions`, `features` and `benefits`: send the\n`id`s, never free text (an unknown id returns `422 validation_failed`). These are the options of\nthe dashboard listing form; the `label` is what buyers see. Ids never change. Any valid key can\nread this catalog.\n"
+          },
+          "response": []
+        },
+        {
+          "name": "Marketplaces — the accepted ids",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/platforms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "platforms"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "Marketplaces — the accepted ids\n\nThe marketplaces a listing can be published on: the options of the dashboard listing form, with\nthe same names. Send their `id`s in a listing's `platforms`. Omitting `platforms` publishes on all\nof them, like the form.\n\n- `bundled_with`: the marketplaces published together with this one, as one block. Select all of\n  them or none of them: selecting only some returns `422 validation_failed`.\n- `available: false`: your account cannot publish there (seller level). Selecting it returns\n  `422 validation_failed`.\n\nAny valid key can read this catalog.\n"
+          },
+          "response": []
+        },
+        {
+          "name": "List your listings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "event_id",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "created_since",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "member",
+                  "value": "",
+                  "disabled": true,
+                  "description": "`owner`, or a member `id` from GET /v1/team: only what they created (the dashboard's \"Member\" filter). A member who only sees their own can only pass their own id."
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "disabled": true,
+                  "description": "`next_cursor` from the previous page."
+                }
+              ]
+            },
+            "description": "List your listings\n\nRequires `listings:read`. Newest first."
+          },
+          "response": []
+        },
+        {
+          "name": "Create listings in bulk (up to 500)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "Create listings in bulk (up to 500)\n\nRequires `listings:write`. The whole batch is validated first: any invalid item fails the request\nwith `422 validation_failed` and per-item `details.items[]`, and nothing is created.\n\nEach item is then processed independently; the response reports one result per input `index`:\n`created`, `duplicate` (same idempotency key as an earlier call, the existing listing is\nreturned), `pending_approval` (your account or the event requires manual approval) or `error`.\nA very large batch that runs out of time reports its remaining items as `error` with code\n`timeout`: send them again with the same idempotency keys.\n\n**Idempotency.** Set `idempotency_key` on each item, or an `Idempotency-Key` header for the\nbatch (item keys are derived from it). Retrying with the same keys never creates duplicates.\n\n**Proof of purchase.** Until your account has 5 sales, each listing needs a proof of purchase,\nwhich the API cannot send: such items come back `error` with code `rejected`. List from the\ndashboard until then.\n\n**Sections.** Use a section key from `GET /v1/events/{id}`, or a category id alone for a whole\ncategory. Sections removed from the event's map are refused (`rejected`); a listing already on\none keeps it.\n\nBatches of 5 or more are published to marketplaces asynchronously: poll the listing's\n`publish_status` / `distribution`.\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listings\": [\n    {\n      \"event_id\": \"{{eventId}}\",\n      \"section\": \"{{sectionKey}}\",\n      \"row\": \"A\",\n      \"first_seat\": \"12\",\n      \"quantity\": 2,\n      \"price\": 120,\n      \"price_currency\": \"EUR\",\n      \"transfer_method\": \"E-ticket\",\n      \"split_type\": \"Any split\",\n      \"idempotency_key\": \"pos-inv-1001\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = (pm.response.json().data || []).find((x) => x.listing); if (d) pm.collectionVariables.set('listingId', d.listing.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update up to 100 listings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings/bulk-update",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings",
+                "bulk-update"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "Update up to 100 listings\n\nRequires `listings:write`. Each item is `{ id, ...fields }` with the same fields as `PATCH /v1/listings/{id}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"updates\": [\n    {\n      \"id\": \"{{listingId}}\",\n      \"price\": 135\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get a listing",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{listingId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Get a listing"
+          },
+          "response": []
+        },
+        {
+          "name": "Update a listing",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{listingId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Update a listing\n\nRequires `listings:write`. Changing an inventory field (`quantity`, `first_seat`, `section`, `row`)\nrequires `expected_inventory_version` equal to the listing's current `inventory_version`: a sale\nmay have just decremented it. On mismatch the API answers `409 listing_changed` with\n`details.current_inventory_version`; reload and retry. Price-only changes need no version.\n\n`platforms` is checked before anything is changed, then applied after the other fields, one\nmarketplace at a time: this is not atomic. If it does not fully go through, the API answers\n`502 platform_update_failed` with `details.fields_saved` (the other fields were saved) and\n`details.platforms` (`[{platform, action, status: done | failed | not_attempted}]`). Read the\nlisting before retrying: its `inventory_version` may have changed.\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 130\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Take a listing off sale everywhere",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings/:id/unpublish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings",
+                ":id",
+                "unpublish"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{listingId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Take a listing off sale everywhere"
+          },
+          "response": []
+        },
+        {
+          "name": "Publish a listing on its marketplaces",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings/:id/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings",
+                ":id",
+                "publish"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{listingId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Publish a listing on its marketplaces"
+          },
+          "response": []
+        },
+        {
+          "name": "Get the pre-uploaded tickets of a listing",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings/:id/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings",
+                ":id",
+                "tickets"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{listingId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Get the pre-uploaded tickets of a listing\n\nRequires `delivery:write`. Tickets uploaded in advance on a listing are delivered automatically as\nsoon as it sells (instant delivery). A `Mobile Link/PKPASS` listing holds links, any other listing\nholds files; `expected` is the listing's quantity.\n"
+          },
+          "response": []
+        },
+        {
+          "name": "Pre-upload ticket files on a listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings/:id/tickets/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings",
+                ":id",
+                "tickets",
+                "files"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{listingId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Pre-upload ticket files on a listing\n\nRequires `delivery:write`. One `files` part per ticket (real PDF, PNG, JPEG or PKPASS files, 20 per\nrequest). Never more files than the listing's quantity, across all requests. Uploading tickets turns\n`instant_delivery` on; it is not a setting of its own.\nNot for `Mobile Link/PKPASS` listings (`409 wrong_delivery_method`: send links instead). While a buyer\nis checking out the listing, its tickets are locked (`409 listing_on_hold`).\nFiles are sent one by one: if one is refused, the error's `details.uploaded` lists those already\nstored and `details.not_sent` those not sent.\n",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Set the pre-uploaded ticket links of a listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings/:id/tickets/links",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings",
+                ":id",
+                "tickets",
+                "links"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{listingId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Set the pre-uploaded ticket links of a listing\n\nRequires `delivery:write`. For `Mobile Link/PKPASS` listings only. The list you send REPLACES the\nlisting's links: HTTPS links, one per ticket, or `{ ios, android }` pairs (not mixed), at most the\nlisting's quantity. An empty list removes every link. Links turn `instant_delivery` on; an empty lot\nturns it off. Locked while a buyer is checking out the listing (`409 listing_on_hold`).\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"links\": [\n    \"https://example.com/webhooks/seatiks\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sandbox",
+      "item": [
+        {
+          "name": "Simulate a sale (test keys only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sandbox/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sandbox",
+                "sales"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "Simulate a sale (test keys only)\n\nRequires `listings:write`. Sells tickets from one of your sandbox listings and emits `sale.created` to your test endpoints. At most 100 simulated sales per hour.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listing_id\": \"{{listingId}}\",\n  \"quantity\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) pm.collectionVariables.set('saleId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "List your sales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sales"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Comma-separated list of statuses."
+                },
+                {
+                  "key": "event_id",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "created_since",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "member",
+                  "value": "",
+                  "disabled": true,
+                  "description": "`owner`, or a member `id` from GET /v1/team: only what they created (the dashboard's \"Member\" filter). A member who only sees their own can only pass their own id."
+                },
+                {
+                  "key": "marketplace",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Only the sales from this marketplace: a `marketplace` value as it appears on your sales (case-insensitive). A name that matches none of your sales returns an empty list."
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "disabled": true,
+                  "description": "`next_cursor` from the previous page."
+                }
+              ]
+            },
+            "description": "List your sales\n\nRequires `sales:read`. Newest first. Prefer webhooks for real-time updates."
+          },
+          "response": []
+        },
+        {
+          "name": "Get a sale",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sales/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sales",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{saleId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Get a sale"
+          },
+          "response": []
+        },
+        {
+          "name": "Update a sale",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sales/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sales",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{saleId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Update a sale\n\nRequires `delivery:write`. The fields the Sales page of the dashboard lets you change, with the same rules:\n- `face_value` (and `face_value_currency`, only together with `face_value`): any time;\n- `transfer_method`: only while the sale is `awaiting_delivery` or `awaiting_retransfer` and not under\n  review (`409 ticket_type_locked`). The new ticket type is also sent to the marketplace the sale comes\n  from; if it refuses, nothing changes for that field (`marketplace_rejected`);\n- `internal_note`: any time, `null` or `\"\"` clears it.\nA sale handed to the replacement team cannot be edited until the case is closed\n(`409 sale_with_replacement_team`). These locks are checked before anything is written.\nFields already equal to the sale's values are skipped. Each field is saved on its own: if one fails,\nthe error's `details.applied` lists the fields that were saved and `details.failed` the others.\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"face_value\": 100,\n  \"face_value_currency\": \"EUR\",\n  \"transfer_method\": \"E-ticket\",\n  \"internal_note\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "See what was delivered for a sale",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sales/:id/delivery",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sales",
+                ":id",
+                "delivery"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{saleId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "See what was delivered for a sale\n\nRequires `delivery:write` (a read-only key cannot fetch tickets). The ticket files, links and\ntransfer proofs delivered for this sale, as shown on the sale in the dashboard. Each file comes with a\n`download_url` valid for `download_urls_expire_in` seconds: call again for fresh links. After a\nre-delivery the first delivery is kept: `uploaded_at` tells them apart. Nothing delivered yet: empty lists.\n"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Delivery",
+      "item": [
+        {
+          "name": "Upload ticket files",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sales/:id/delivery/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sales",
+                ":id",
+                "delivery",
+                "files"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{saleId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Upload ticket files\n\nRequires `delivery:write`. For E-ticket / Mobile Screenshot sales (`409 wrong_delivery_method` for a\nMobile Link/PKPASS or transfer sale). One `files` part per ticket (PDF, PNG, JPEG or PKPASS, 10 MB max, 20 files\nper request, `Content-Length` required);\n`files[]` / `files[0]`, `files[1]`… are accepted too (PHP curl).\nWhen the sale has as many files as tickets, Seatiks delivers them to the buyer's marketplace and\nthe sale becomes `delivered` (you also receive `sale.delivered`). If you split a sale's files over\nseveral requests, send them **one after the other**, never in parallel.\nRe-delivery (sale `awaiting_retransfer`): send the new files, in several requests if needed; once\nas many new files as tickets are uploaded, the sale becomes `delivered` again.\n",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deliver mobile ticket links",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sales/:id/delivery/links",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sales",
+                ":id",
+                "delivery",
+                "links"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{saleId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Deliver mobile ticket links\n\nRequires `delivery:write`. For `Mobile Link/PKPASS` sales only (`409 wrong_delivery_method` otherwise). HTTPS links, at most one per ticket, or `{ ios, android }` pairs. Some marketplaces only accept pairs; a single link is then refused (`400 invalid_request`, send `{ ios, android }` objects). The sale becomes `delivered`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"links\": [\n    \"https://tickets.example.com/t/abc\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm a transfer with its proof",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sales/:id/delivery/transfer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sales",
+                ":id",
+                "delivery",
+                "transfer"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{saleId}}"
+                }
+              ],
+              "query": [
+                {
+                  "key": "transfer_source",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Required for an `External Transfer`."
+                }
+              ]
+            },
+            "description": "Confirm a transfer with its proof\n\nRequires `delivery:write`. For sales whose `transfer_method` is `External Transfer`, `Paper` or\n`Local Delivery`: you transferred or handed over the tickets outside Seatiks, and you prove it.\nSend **one** proof as a `files` part (screenshot of the completed transfer, or delivery document: PDF,\nPNG or JPEG, **700 KB max** — compress screenshots to JPEG, e.g. 1600 px wide, quality 80; each proof\ntriggers a delivery to the marketplace). Some marketplaces only take images: a PDF may be refused\nwith `400`. `transfer_source` (the platform the tickets were transferred from) is required for an\n`External Transfer`; some marketplaces refuse `Other` with `400`: send the actual platform. The proof\nis forwarded to the buyer's marketplace and the sale becomes\n`delivered`. Other sales return `409 wrong_delivery_method`: deliver them with `/delivery/files`\nor `/delivery/links`.\n",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Read your balances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "wallet"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "Read your balances\n\nRequires `wallet:read`. Read-only; withdrawals require the dashboard (two-factor step-up)."
+          },
+          "response": []
+        },
+        {
+          "name": "List wallet transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/wallet/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "wallet",
+                "transactions"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "disabled": true,
+                  "description": "`next_cursor` from the previous page."
+                }
+              ]
+            },
+            "description": "List wallet transactions"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "List webhook endpoints",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "List webhook endpoints\n\nRequires `webhooks:manage` (account owner keys only). Endpoints belong to the key's mode."
+          },
+          "response": []
+        },
+        {
+          "name": "Create a webhook endpoint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "Create a webhook endpoint\n\nThe signing `secret` is returned only in this response (and on rotation). Store it. Requires `webhooks:manage` **and** `sales:read`: an endpoint receives every sale of the account, buyer details included. With an API key, only **test** endpoints can be created: a live endpoint is created from the dashboard (Settings → Developers), with two-factor authentication (`403 dashboard_required`).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com/webhooks/seatiks\",\n  \"events\": [\n    \"sale.created\",\n    \"sale.delivered\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) pm.collectionVariables.set('webhookId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get a webhook endpoint",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{webhookId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Get a webhook endpoint"
+          },
+          "response": []
+        },
+        {
+          "name": "Update a webhook endpoint",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{webhookId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Update a webhook endpoint\n\nSet `enabled` to `true` to re-enable an endpoint disabled after repeated failures. Changing `url` also requires the `sales:read` scope. With an API key, only **test** endpoints can be changed: a live endpoint (it receives buyer details) is changed, re-enabled or disabled from the dashboard, with two-factor authentication (`403 dashboard_required`).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Rotate the signing secret",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/:id/rotate-secret",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                ":id",
+                "rotate-secret"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{webhookId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Rotate the signing secret\n\nFor 24 hours events carry two `v1=` signatures (new and old secret) so you can deploy the new secret without downtime. Send `{ \"expire_previous\": true }` to revoke the old secret immediately (e.g. after a leak). The secret of a **live** endpoint is rotated from the dashboard, with two-factor authentication (`403 dashboard_required` with an API key).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expire_previous\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send a test event now",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/:id/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                ":id",
+                "test"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{webhookId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Send a test event now\n\nAt most 5 test events per minute per endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "List recent deliveries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/:id/deliveries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                ":id",
+                "deliveries"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{webhookId}}"
+                }
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "disabled": true,
+                  "description": "`next_cursor` from the previous page."
+                }
+              ]
+            },
+            "description": "List recent deliveries"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = (pm.response.json().data || [])[0]; if (d) pm.collectionVariables.set('deliveryId', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Redeliver a failed event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/:id/deliveries/:delivery_id/retry",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                ":id",
+                "deliveries",
+                ":delivery_id",
+                "retry"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{webhookId}}"
+                },
+                {
+                  "key": "delivery_id",
+                  "value": "{{deliveryId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Redeliver a failed event\n\nOnly deliveries in `failed` status, at most 3 manual retries per delivery. Requires `webhooks:manage` and `sales:read`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "Delete up to 500 listings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings/bulk-delete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings",
+                "bulk-delete"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "Delete up to 500 listings\n\nRequires `listings:write`. Per-id status: `deleted`, `not_found`, `pending` (unpublished now,\nremoval from a marketplace still in progress) or `error` (code `listing_on_hold` when a buyer\ncurrently holds the listing; the other ids are still deleted).\n",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"{{listingId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete a listing",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{listingId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Delete a listing\n\nRequires `listings:write`. A listing currently held by a buyer cannot be deleted:\n`409` with code `listing_on_hold`.\n"
+          },
+          "response": []
+        },
+        {
+          "name": "Remove a pre-uploaded ticket file",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/listings/:id/tickets/files/:name",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "listings",
+                ":id",
+                "tickets",
+                "files",
+                ":name"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{listingId}}"
+                },
+                {
+                  "key": "name"
+                }
+              ],
+              "query": []
+            },
+            "description": "Remove a pre-uploaded ticket file\n\nRequires `delivery:write`. Removing the last file turns `instant_delivery` off. Locked while a buyer is\nchecking out the listing (`409 listing_on_hold`).\n"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete a webhook endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/webhooks/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{webhookId}}"
+                }
+              ],
+              "query": []
+            },
+            "description": "Delete a webhook endpoint\n\nWith an API key, only **test** endpoints can be deleted: a live endpoint is deleted from the dashboard, with two-factor authentication (`403 dashboard_required`)."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

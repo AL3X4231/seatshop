@@ -1,0 +1,23 @@
+name = "seatshop-push"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# URL publique de la PWA, avec un slash final.
+# Exemple : https://al3x4231.github.io/seatshop/
+[vars]
+APP_URL = "https://al3x4231.github.io/seatshop/"
+VAPID_SUBJECT = "mailto:your-email@example.com"
+
+# Créez le namespace avec :
+#   npx wrangler kv namespace create SEATSHOP_KV
+# puis remplacez l'identifiant ci-dessous par celui affiché.
+[[kv_namespaces]]
+binding = "SEATSHOP_KV"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# Vérifie les nouvelles ventes toutes les minutes.
+[triggers]
+crons = ["* * * * *"]
+
+[observability]
+enabled = true

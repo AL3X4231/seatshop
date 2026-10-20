@@ -1,0 +1,26 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+
+# Données privées : ne jamais publier la clé API ni les exports de l'API.
+seatiksapi.md
+seatshopapi.md
+api-samples/
+
+# Build et outils
+*.tsbuildinfo
+.wrangler/
+.wrangler-build/
+push-worker/node_modules/
+push-worker/.dev.vars
+
+# Éditeurs
+.vscode/*
+!.vscode/extensions.json
+.idea/
