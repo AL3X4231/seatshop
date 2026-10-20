@@ -335,7 +335,7 @@ export function DashboardPage() {
             <span>
               {!settings.soundEnabled
                 ? 'Réactivez le cha-ching pour être prévenu à chaque commande.'
-                : 'Autorisez les notifications pour être alerté même quand l’app est en arrière-plan.'}
+                : 'Autorisez les notifications pour recevoir les alertes de vente.'}
             </span>
           </div>
           <button

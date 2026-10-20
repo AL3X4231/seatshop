@@ -457,7 +457,7 @@ export function SettingsPage() {
             id="notifications"
             icon={BellRing}
             title="Notifications"
-            description="Le son Shopify en premier plan, et les alertes push en arrière-plan."
+            description="Le son Shopify au premier plan, et les alertes push optionnelles en arrière-plan."
           >
             <SettingRow
               title="Son de vente"

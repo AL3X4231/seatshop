@@ -112,7 +112,7 @@ export function LoginPage() {
               </span>
               <div>
                 <strong>Notifications iOS</strong>
-                <p>Installée depuis Safari, avec alertes push en arrière-plan.</p>
+                <p>Installée depuis Safari, avec alertes de vente et notifications.</p>
               </div>
             </div>
             <div className="login-feature">
