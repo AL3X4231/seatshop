@@ -6,14 +6,14 @@ compatibility_date = "2024-12-01"
 # Exemple : https://al3x4231.github.io/seatshop/
 [vars]
 APP_URL = "https://al3x4231.github.io/seatshop/"
-VAPID_SUBJECT = "mailto:your-email@example.com"
+VAPID_SUBJECT = "mailto:al3x4231@users.noreply.github.com"
 
 # Créez le namespace avec :
 #   npx wrangler kv namespace create SEATSHOP_KV
 # puis remplacez l'identifiant ci-dessous par celui affiché.
 [[kv_namespaces]]
 binding = "SEATSHOP_KV"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+id = "813096b246214594b0050ef1786b03ca"
 
 # Vérifie les nouvelles ventes toutes les minutes.
 [triggers]
