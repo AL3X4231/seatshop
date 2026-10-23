@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowDownRight,
-  ArrowRight,
   ArrowUpRight,
   BellRing,
   CalendarDays,
@@ -283,31 +282,27 @@ export function DashboardPage() {
         title={settings.displayName ? `Bonjour, ${settings.displayName}` : 'Bonjour 👋'}
         subtitle={
           <>
-            {formatDateLong(new Date())} · Voici ce qui se passe dans votre boutique.
-            {sync.lastSync ? <span className="header-sync"> Dernière synchro {timeAgo(sync.lastSync)}.</span> : null}
+            {formatDateLong(new Date())}
+            {sync.lastSync ? (
+              <span className="header-sync"> · Synchro {timeAgo(sync.lastSync)}</span>
+            ) : null}
           </>
         }
         actions={
-          <>
-            {mode === 'demo' ? (
-              <ActionMenu
-                label="Autres actions"
-                items={[
-                  {
-                    id: 'simulate',
-                    label: simulating ? 'Vente en cours…' : 'Simuler une vente',
-                    icon: Sparkles,
-                    onSelect: () => void onSimulate(),
-                    disabled: simulating,
-                  },
-                ]}
-              />
-            ) : null}
-            <Link to="/sales" className="btn btn-primary">
-              Voir les ventes
-              <ArrowRight size={16} />
-            </Link>
-          </>
+          mode === 'demo' ? (
+            <ActionMenu
+              label="Autres actions"
+              items={[
+                {
+                  id: 'simulate',
+                  label: simulating ? 'Vente en cours…' : 'Simuler une vente',
+                  icon: Sparkles,
+                  onSelect: () => void onSimulate(),
+                  disabled: simulating,
+                },
+              ]}
+            />
+          ) : null
         }
       />
 
@@ -346,9 +341,7 @@ export function DashboardPage() {
           </span>
           <div className="alert-strip-text">
             <strong>
-              {!settings.soundEnabled
-                ? 'Le son de vente est désactivé'
-                : 'Ne manquez plus une vente'}
+              {!settings.soundEnabled ? 'Son de vente désactivé' : 'Notifications désactivées'}
             </strong>
             <span>
               {!settings.soundEnabled
@@ -361,7 +354,7 @@ export function DashboardPage() {
             className="btn btn-secondary btn-sm"
             onClick={() => void (!settings.soundEnabled ? enableSound() : enableNotifications())}
           >
-            {!settings.soundEnabled ? 'Activer le son' : 'Activer les alertes'}
+            {!settings.soundEnabled ? 'Réactiver' : 'Autoriser'}
           </button>
         </div>
       ) : null}

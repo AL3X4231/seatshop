@@ -342,11 +342,7 @@ export function EventsPage() {
     <div className="page">
       <PageHeader
         title="Événements"
-        subtitle={
-          mode === 'demo'
-            ? 'Catalogue de démonstration · les événements Seatiks à venir'
-            : 'Catalogue Seatiks · événements ouverts aux annonces'
-        }
+        subtitle={mode === 'demo' ? 'Catalogue de démonstration' : 'Catalogue Seatiks'}
         actions={
           mode === 'demo' ? (
             <ActionMenu

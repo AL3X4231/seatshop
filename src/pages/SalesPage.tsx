@@ -409,17 +409,10 @@ export function SalesPage() {
     downloadFile(`ventes-seatshop-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows));
   };
 
-  const awaiting = sales.filter((sale) => sale.status === 'awaiting_delivery').length;
-
   return (
     <div className="page">
       <PageHeader
         title="Ventes"
-        subtitle={
-          <>
-            {sales.length} commandes · {awaiting} à livrer · {filtered.length} affichées
-          </>
-        }
         actions={
           <ActionMenu
             label="Actions sur les ventes"

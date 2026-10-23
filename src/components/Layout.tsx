@@ -18,14 +18,6 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-function ScrollToTop() {
-  const { pathname } = useLocation();
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-  }, [pathname]);
-  return null;
-}
-
 export function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -86,7 +78,6 @@ export function Layout() {
 
   return (
     <div className={`app-shell ${scrolled ? 'is-scrolled' : ''}`}>
-      <ScrollToTop />
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
       {menuOpen ? (
         <button

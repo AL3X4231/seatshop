@@ -57,6 +57,19 @@ import { Modal } from '../components/Modal';
 const REPO_URL = import.meta.env.VITE_REPO_URL || 'https://github.com/AL3X4231/seatshop';
 const WORKER_URL = `${REPO_URL}/tree/main/push-worker`;
 
+const SETTINGS_SECTIONS = [
+  { id: 'compte', label: 'Compte Seatiks' },
+  { id: 'notifications', label: 'Notifications' },
+  { id: 'installation', label: 'Installation' },
+  { id: 'application', label: 'Application' },
+  { id: 'donnees', label: 'Données' },
+  { id: 'apropos', label: 'À propos' },
+];
+
+function scrollToSettingsSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function Section({
   id,
   title,
@@ -359,29 +372,39 @@ export function SettingsPage() {
 
   return (
     <div className="page">
-      <PageHeader
-        title="Paramètres"
-        subtitle="Compte, notifications, installation et données locales."
-      />
+      <PageHeader title="Paramètres" />
+
+      <div className="settings-jump-wrap">
+        <select
+          className="select settings-jump"
+          defaultValue=""
+          aria-label="Aller à une section des réglages"
+          onChange={(event) => {
+            const section = event.target.value;
+            if (section) scrollToSettingsSection(section);
+            event.target.value = '';
+          }}
+        >
+          <option value="" disabled>
+            Aller à une section
+          </option>
+          {SETTINGS_SECTIONS.map((section) => (
+            <option key={section.id} value={section.id}>
+              {section.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="settings-layout">
         <aside className="settings-nav">
-          {[
-            ['compte', 'Compte Seatiks'],
-            ['notifications', 'Notifications'],
-            ['installation', 'Installation'],
-            ['application', 'Application'],
-            ['donnees', 'Données'],
-            ['apropos', 'À propos'],
-          ].map(([id, label]) => (
+          {SETTINGS_SECTIONS.map((section) => (
             <button
-              key={id}
+              key={section.id}
               type="button"
-              onClick={() =>
-                document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }
+              onClick={() => scrollToSettingsSection(section.id)}
             >
-              {label}
+              {section.label}
             </button>
           ))}
         </aside>

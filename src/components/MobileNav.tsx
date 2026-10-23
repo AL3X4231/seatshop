@@ -1,13 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { Bell, Home, Settings, ShoppingBag, Ticket } from 'lucide-react';
+import { Bell, CalendarDays, Home, ShoppingBag, Ticket } from 'lucide-react';
 import { useData } from '../context/DataContext';
 
 const items = [
   { to: '/', icon: Home, label: 'Accueil', end: true },
   { to: '/sales', icon: ShoppingBag, label: 'Ventes' },
   { to: '/listings', icon: Ticket, label: 'Inventaire' },
+  { to: '/events', icon: CalendarDays, label: 'Événements' },
   { to: '/alerts', icon: Bell, label: 'Alertes' },
-  { to: '/settings', icon: Settings, label: 'Réglages' },
 ];
 
 export function MobileNav() {

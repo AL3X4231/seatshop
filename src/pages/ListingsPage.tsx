@@ -450,12 +450,6 @@ export function ListingsPage() {
     <div className="page">
       <PageHeader
         title="Inventaire"
-        subtitle={
-          <>
-            {active.length} annonces en ligne · {formatNumber(ticketsListed)} billets publiés
-            {errors > 0 ? <span className="text-danger"> · {errors} erreurs de diffusion</span> : null}
-          </>
-        }
         actions={
           <ActionMenu
             label="Actions sur l’inventaire"

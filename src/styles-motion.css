@@ -342,6 +342,124 @@
   }
 }
 
+/* --------------------------- Navigation transitions ----------------------- */
+
+.content {
+  background: var(--bg);
+}
+
+.content,
+.login-page {
+  view-transition-name: page-content;
+}
+
+.mobile-nav {
+  view-transition-name: mobile-nav;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-group(mobile-nav),
+::view-transition-old(mobile-nav),
+::view-transition-new(mobile-nav) {
+  animation: none;
+}
+
+::view-transition-group(page-content) {
+  animation-duration: 460ms;
+}
+
+::view-transition-old(page-content) {
+  animation: route-old-forward 340ms var(--ease-ios) both;
+}
+
+::view-transition-new(page-content) {
+  animation: route-new-forward 460ms var(--ease-out-expo) both;
+}
+
+html[data-nav-direction='back'] ::view-transition-old(page-content) {
+  animation-name: route-old-back;
+}
+
+html[data-nav-direction='back'] ::view-transition-new(page-content) {
+  animation-name: route-new-back;
+}
+
+@keyframes route-old-forward {
+  to {
+    opacity: 0;
+    transform: translateX(calc(-1 * clamp(28px, 10vw, 110px))) scale(0.99);
+  }
+}
+
+@keyframes route-new-forward {
+  from {
+    opacity: 0;
+    transform: translateX(clamp(28px, 10vw, 110px)) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes route-old-back {
+  to {
+    opacity: 0;
+    transform: translateX(clamp(28px, 10vw, 110px)) scale(0.99);
+  }
+}
+
+@keyframes route-new-back {
+  from {
+    opacity: 0;
+    transform: translateX(calc(-1 * clamp(28px, 10vw, 110px))) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Une fois les view transitions disponibles, elles remplacent les entrées
+   en cascade pour éviter de jouer deux animations sur la même navigation. */
+html.view-transitions-enabled .page,
+html.view-transitions-enabled .page > *,
+html.view-transitions-enabled .kpi-card,
+html.view-transitions-enabled .dashboard-grid > .card,
+html.view-transitions-enabled .event-card,
+html.view-transitions-enabled .sale-card,
+html.view-transitions-enabled .recent-sale,
+html.view-transitions-enabled .alerts-setting-row,
+html.view-transitions-enabled .alert-row,
+html.view-transitions-enabled .settings-section,
+html.view-transitions-enabled .sales-summary-item,
+html.view-transitions-enabled .settings-nav,
+html.view-transitions-enabled .status-banner,
+html.view-transitions-enabled .empty-state,
+html.view-transitions-enabled .data-table tbody tr,
+html.view-transitions-enabled .login-topbar,
+html.view-transitions-enabled .login-kicker,
+html.view-transitions-enabled .login-headline,
+html.view-transitions-enabled .login-lead,
+html.view-transitions-enabled .login-features,
+html.view-transitions-enabled .login-preview,
+html.view-transitions-enabled .login-feature,
+html.view-transitions-enabled .login-card-wrap,
+html.view-transitions-enabled .login-card-icon,
+html.view-transitions-enabled .preview-chart span,
+html.view-transitions-enabled .preview-toast {
+  animation: none !important;
+}
+
+html.is-view-transition .content *,
+html.is-view-transition .login-page * {
+  animation: none !important;
+}
+
 /* --------------------------------- Pages ---------------------------------- */
 
 .page {

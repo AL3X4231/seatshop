@@ -1,11 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import {
-  Bell,
   CloudOff,
   Download,
   Menu,
   RefreshCw,
   Search,
+  Settings,
   Volume2,
   VolumeX,
 } from 'lucide-react';
@@ -16,7 +16,6 @@ import { useToast } from '../context/ToastContext';
 import { timeAgo } from '../lib/format';
 import { playSaleSound } from '../lib/notifications';
 import { ActionMenu } from './ActionMenu';
-import { Avatar } from './Avatar';
 import { Logo } from './Logo';
 
 type TopBarProps = {
@@ -25,9 +24,8 @@ type TopBarProps = {
 };
 
 export function TopBar({ onOpenMenu, onOpenSearch }: TopBarProps) {
-  const navigate = useNavigate();
   const { settings, updateSettings, mode } = useAuth();
-  const { sync, refreshAll, unreadCount, online } = useData();
+  const { sync, refreshAll, online } = useData();
   const { openInstall, installed } = useInstall();
   const { toast } = useToast();
 
@@ -101,19 +99,13 @@ export function TopBar({ onOpenMenu, onOpenSearch }: TopBarProps) {
           <Search size={19} />
         </button>
 
-        <button
-          type="button"
-          className="icon-btn topbar-bell"
-          onClick={() => navigate('/alerts')}
-          aria-label={`Alertes${unreadCount ? `, ${unreadCount} non lues` : ''}`}
+        <NavLink
+          to="/settings"
+          className={({ isActive }) => `icon-btn topbar-settings ${isActive ? 'is-active' : ''}`}
+          aria-label="Paramètres"
         >
-          <Bell size={19} />
-          {unreadCount > 0 ? (
-            <span key={unreadCount} className="topbar-bell-badge">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          ) : null}
-        </button>
+          <Settings size={19} />
+        </NavLink>
 
         <ActionMenu
           label="Actions rapides"
@@ -144,15 +136,6 @@ export function TopBar({ onOpenMenu, onOpenSearch }: TopBarProps) {
               : []),
           ]}
         />
-
-        <button
-          type="button"
-          className="topbar-avatar"
-          onClick={() => navigate('/settings')}
-          aria-label="Ouvrir les paramètres"
-        >
-          <Avatar name={settings.displayName || settings.storeName || 'SeatShop'} size={32} />
-        </button>
       </div>
     </header>
   );
