@@ -26,10 +26,12 @@ export function MobileNav() {
           <span className="mobile-nav-icon">
             <Icon size={21} strokeWidth={1.9} />
             {to === '/sales' && awaiting > 0 ? (
-              <span className="mobile-nav-badge">{awaiting > 9 ? '9+' : awaiting}</span>
+              <span key={awaiting} className="mobile-nav-badge">
+                {awaiting > 9 ? '9+' : awaiting}
+              </span>
             ) : null}
             {to === '/alerts' && unreadCount > 0 ? (
-              <span className="mobile-nav-badge mobile-nav-badge-alert">
+              <span key={unreadCount} className="mobile-nav-badge mobile-nav-badge-alert">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             ) : null}

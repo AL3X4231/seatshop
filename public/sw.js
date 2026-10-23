@@ -1,5 +1,5 @@
 /* SeatShop service worker — offline shell + Web Push */
-const VERSION = 'seatshop-v1.1.0';
+const VERSION = 'seatshop-v1.2.0';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 

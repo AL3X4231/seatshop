@@ -109,7 +109,9 @@ export function TopBar({ onOpenMenu, onOpenSearch }: TopBarProps) {
         >
           <Bell size={19} />
           {unreadCount > 0 ? (
-            <span className="topbar-bell-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+            <span key={unreadCount} className="topbar-bell-badge">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
           ) : null}
         </button>
 

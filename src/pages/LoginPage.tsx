@@ -156,7 +156,10 @@ export function LoginPage() {
                   </div>
                   <div className="preview-chart">
                     {[42, 65, 48, 78, 56, 88, 72, 96, 68, 84, 92, 74].map((height, index) => (
-                      <span key={index} style={{ height: `${height}%` }} />
+                      <span
+                        key={index}
+                        style={{ height: `${height}%`, animationDelay: `${index * 45}ms` }}
+                      />
                     ))}
                   </div>
                   <div className="preview-toast">

@@ -19,9 +19,16 @@ function BootScreen() {
     const boot = document.getElementById('boot');
     if (!boot) return;
     const timer = window.setTimeout(() => {
-      boot.style.transition = 'opacity 260ms ease';
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      boot.style.transition = reduce
+        ? 'opacity 260ms ease'
+        : 'opacity 320ms ease, transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 320ms ease';
       boot.style.opacity = '0';
-      window.setTimeout(() => boot.remove(), 300);
+      if (!reduce) {
+        boot.style.transform = 'scale(1.04)';
+        boot.style.filter = 'blur(3px)';
+      }
+      window.setTimeout(() => boot.remove(), reduce ? 300 : 440);
     }, 120);
     return () => window.clearTimeout(timer);
   }, []);

@@ -32,13 +32,15 @@ export function Sparkline({ data, color = '#008060', width = 88, height = 30 }: 
       aria-hidden="true"
     >
       <polyline
+        className="sparkline-line"
         points={points}
+        pathLength={1}
         stroke={color}
         strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx={lastX} cy={lastY} r="2.4" fill={color} />
+      <circle className="sparkline-dot" cx={lastX} cy={lastY} r="2.4" fill={color} />
     </svg>
   );
 }

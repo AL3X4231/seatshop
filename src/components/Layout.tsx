@@ -29,12 +29,31 @@ function ScrollToTop() {
 export function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { sync, online, refreshAll } = useData();
   const location = useLocation();
 
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      setScrolled(window.scrollY > 6);
+    };
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(update);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    update();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
 
   useEffect(() => {
     document.title = `${pageTitle(location.pathname)} · SeatShop`;
@@ -66,7 +85,7 @@ export function Layout() {
   }, []);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${scrolled ? 'is-scrolled' : ''}`}>
       <ScrollToTop />
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
       {menuOpen ? (

@@ -486,7 +486,7 @@ export function ListingsPage() {
           </span>
           <div>
             <span>Annonces en ligne</span>
-            <strong>{active.length}</strong>
+            <strong key={active.length}>{active.length}</strong>
           </div>
         </div>
         <div className="card mini-kpi">
@@ -495,7 +495,7 @@ export function ListingsPage() {
           </span>
           <div>
             <span>Billets listés</span>
-            <strong>{formatNumber(ticketsListed)}</strong>
+            <strong key={ticketsListed}>{formatNumber(ticketsListed)}</strong>
           </div>
         </div>
         <div className="card mini-kpi">
@@ -504,7 +504,9 @@ export function ListingsPage() {
           </span>
           <div>
             <span>Valeur catalogue</span>
-            <strong>{formatMoney(inventoryValue, currency, { compact: inventoryValue >= 10000 })}</strong>
+            <strong key={inventoryValue}>
+              {formatMoney(inventoryValue, currency, { compact: inventoryValue >= 10000 })}
+            </strong>
           </div>
         </div>
         <div className={`card mini-kpi ${errors > 0 ? 'mini-kpi-has-error' : ''}`}>
@@ -513,7 +515,7 @@ export function ListingsPage() {
           </span>
           <div>
             <span>Erreurs de diffusion</span>
-            <strong>{errors}</strong>
+            <strong key={errors}>{errors}</strong>
           </div>
         </div>
       </div>

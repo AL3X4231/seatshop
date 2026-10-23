@@ -446,19 +446,23 @@ export function SalesPage() {
       <div className="sales-summary">
         <div className="sales-summary-item">
           <span>Volume filtré</span>
-          <strong>{formatMoney(filteredRevenue, currency)}</strong>
+          <strong key={filteredRevenue}>{formatMoney(filteredRevenue, currency)}</strong>
         </div>
         <div className="sales-summary-item">
           <span>Commandes</span>
-          <strong>{filtered.length}</strong>
+          <strong key={filtered.length}>{filtered.length}</strong>
         </div>
         <div className="sales-summary-item">
           <span>À livrer</span>
-          <strong>{filtered.filter((sale) => sale.status === 'awaiting_delivery').length}</strong>
+          <strong key={filtered.filter((sale) => sale.status === 'awaiting_delivery').length}>
+            {filtered.filter((sale) => sale.status === 'awaiting_delivery').length}
+          </strong>
         </div>
         <div className="sales-summary-item">
           <span>Livrées</span>
-          <strong>{filtered.filter((sale) => sale.status === 'delivered').length}</strong>
+          <strong key={filtered.filter((sale) => sale.status === 'delivered').length}>
+            {filtered.filter((sale) => sale.status === 'delivered').length}
+          </strong>
         </div>
       </div>
 

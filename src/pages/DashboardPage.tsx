@@ -100,7 +100,9 @@ function KpiCard({
         <span className="kpi-label">{label}</span>
       </div>
       <div className="kpi-value-row">
-        <div className="kpi-value">{value}</div>
+        <div className="kpi-value" key={value}>
+          {value}
+        </div>
         {spark ? <Sparkline data={spark} color={tone === 'blue' ? '#2c6ecb' : tone === 'violet' ? '#7b5cf0' : tone === 'amber' ? '#b98900' : '#008060'} /> : null}
       </div>
       <div className="kpi-bottom">

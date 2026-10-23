@@ -25,7 +25,9 @@ export function RevenueChart({ data, currency, height = 196 }: RevenueChartProps
     <div className="revenue-chart">
       <div className="chart-summary">
         <div>
-          <div className="chart-total">{formatMoney(total, currency)}</div>
+          <div className="chart-total" key={total}>
+            {formatMoney(total, currency)}
+          </div>
           <div className="chart-total-label">
             {active
               ? `${active.fullLabel} · ${formatMoney(active.value, currency)}`
@@ -50,7 +52,7 @@ export function RevenueChart({ data, currency, height = 196 }: RevenueChartProps
             const ratio = point.value / max;
             return (
               <button
-                key={point.key}
+                key={`${point.key}-${point.value}`}
                 type="button"
                 className={`chart-bar ${hovered === index ? 'is-hovered' : ''} ${
                   point.value === 0 ? 'is-empty' : ''
@@ -64,7 +66,10 @@ export function RevenueChart({ data, currency, height = 196 }: RevenueChartProps
               >
                 <span
                   className="chart-bar-fill"
-                  style={{ height: `${Math.max(ratio * 100, point.value > 0 ? 4 : 1.5)}%` }}
+                  style={{
+                    height: `${Math.max(ratio * 100, point.value > 0 ? 4 : 1.5)}%`,
+                    animationDelay: `${index * 28}ms`,
+                  }}
                 />
               </button>
             );
