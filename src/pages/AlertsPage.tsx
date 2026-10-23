@@ -5,8 +5,6 @@ import {
   BellRing,
   CheckCheck,
   ChevronRight,
-  Clock3,
-  Settings,
   ShoppingBag,
   Sparkles,
   Trash2,
@@ -31,6 +29,7 @@ import {
   showSystemNotification,
 } from '../lib/notifications';
 import { PageHeader } from '../components/PageHeader';
+import { ActionMenu } from '../components/ActionMenu';
 import { EmptyState } from '../components/EmptyState';
 import { StatusPill } from '../components/StatusPill';
 
@@ -123,57 +122,77 @@ export function AlertsPage() {
         }
         actions={
           <>
-            {mode === 'demo' ? (
-              <button type="button" className="btn btn-secondary" onClick={() => void onSimulate()} disabled={simulating}>
-                <Sparkles size={16} />
-                {simulating ? 'Vente…' : 'Simuler une vente'}
+            {unreadCount > 0 ? (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={markAlertsRead}
+              >
+                <CheckCheck size={16} />
+                Tout lire
               </button>
-            ) : (
-              <button type="button" className="btn btn-secondary" onClick={() => void testSound()}>
-                <Volume2 size={16} />
-                Tester le son
-              </button>
-            )}
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={markAlertsRead}
-              disabled={!unreadCount}
-            >
-              <CheckCheck size={16} />
-              Tout lire
-            </button>
+            ) : null}
+            <ActionMenu
+              label="Actions sur les alertes"
+              items={[
+                {
+                  id: 'test',
+                  label: mode === 'demo' ? 'Simuler une vente' : 'Tester le son',
+                  icon: mode === 'demo' ? Sparkles : Volume2,
+                  onSelect: () => void (mode === 'demo' ? onSimulate() : testSound()),
+                  disabled: simulating,
+                },
+                {
+                  id: 'clear',
+                  label: 'Effacer les alertes',
+                  icon: Trash2,
+                  onSelect: clearAlerts,
+                  destructive: true,
+                  disabled: !alerts.length,
+                },
+              ]}
+            />
           </>
         }
       />
 
-      <div className="alerts-status-grid">
-        <div className={`card alerts-status-card ${settings.soundEnabled ? 'is-ok' : 'is-off'}`}>
-          <span className="alerts-status-icon">
-            <Volume2 size={19} />
+      <div className="card alerts-settings">
+        <div className="alerts-setting-row">
+          <span className={`alerts-setting-icon ${settings.soundEnabled ? 'is-ok' : 'is-off'}`}>
+            <Volume2 size={18} />
           </span>
-          <div className="alerts-status-text">
+          <div className="alerts-setting-text">
             <strong>Son de vente</strong>
             <span>{settings.soundEnabled ? 'Cha-ching activé' : 'Désactivé'}</span>
           </div>
-          <button
-            type="button"
-            className={`btn btn-sm ${settings.soundEnabled ? 'btn-ghost' : 'btn-primary'}`}
-            onClick={() => {
-              const next = !settings.soundEnabled;
-              updateSettings({ soundEnabled: next });
-              if (next) void testSound();
-            }}
-          >
-            {settings.soundEnabled ? 'Désactiver' : 'Activer'}
-          </button>
+          <label className="toggle" aria-label="Son de vente">
+            <input
+              type="checkbox"
+              checked={settings.soundEnabled}
+              onChange={(event) => {
+                const next = event.target.checked;
+                updateSettings({ soundEnabled: next });
+                if (next) void testSound();
+              }}
+            />
+            <span className="toggle-track">
+              <span className="toggle-thumb" />
+            </span>
+          </label>
         </div>
 
-        <div className={`card alerts-status-card ${permission === 'granted' ? 'is-ok' : 'is-off'}`}>
-          <span className="alerts-status-icon">
-            {permission === 'granted' ? <BellRing size={19} /> : <Bell size={19} />}
+        <button
+          type="button"
+          className="alerts-setting-row"
+          onClick={() => {
+            if (permission === 'default') void enableNotifications();
+            else navigate('/settings#notifications');
+          }}
+        >
+          <span className={`alerts-setting-icon ${permission === 'granted' ? 'is-ok' : 'is-off'}`}>
+            {permission === 'granted' ? <BellRing size={18} /> : <Bell size={18} />}
           </span>
-          <div className="alerts-status-text">
+          <div className="alerts-setting-text">
             <strong>Notifications système</strong>
             <span>
               {permission === 'granted'
@@ -187,29 +206,40 @@ export function AlertsPage() {
                     : 'Non autorisées'}
             </span>
           </div>
-          {permission !== 'granted' && permission !== 'unsupported' ? (
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => void enableNotifications()}>
-              Activer
-            </button>
+          {permission === 'granted' ? (
+            <StatusPill tone="green" dot={false}>
+              Autorisées
+            </StatusPill>
+          ) : permission === 'unsupported' ? (
+            <StatusPill tone="gray" dot={false}>
+              Indisponible
+            </StatusPill>
+          ) : permission === 'denied' ? (
+            <StatusPill tone="amber" dot={false}>
+              Bloquées
+            </StatusPill>
           ) : (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/settings')}>
-              <Settings size={14} />
-              Gérer
-            </button>
+            <span className="alerts-setting-action">Autoriser</span>
           )}
-        </div>
+          <ChevronRight size={16} className="alerts-setting-chevron" />
+        </button>
 
         {!installed ? (
-          <div className="card alerts-status-card alerts-status-install">
-            <img src={`${import.meta.env.BASE_URL}icons/icon-180.png`} alt="" width={34} height={34} />
-            <div className="alerts-status-text">
+          <button type="button" className="alerts-setting-row" onClick={openInstall}>
+            <img
+              className="alerts-setting-app-icon"
+              src={`${import.meta.env.BASE_URL}icons/icon-180.png`}
+              alt=""
+              width={34}
+              height={34}
+            />
+            <div className="alerts-setting-text">
               <strong>Installer SeatShop</strong>
               <span>Ajoutez l’app à l’écran d’accueil pour les notifications push.</span>
             </div>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={openInstall}>
-              Installer
-            </button>
-          </div>
+            <span className="alerts-setting-action">Installer</span>
+            <ChevronRight size={16} className="alerts-setting-chevron" />
+          </button>
         ) : null}
       </div>
 
@@ -236,17 +266,6 @@ export function AlertsPage() {
         </div>
       ) : (
         <>
-          <div className="alerts-toolbar">
-            <span className="alerts-toolbar-note">
-              <Clock3 size={14} />
-              Les alertes sont conservées sur cet appareil.
-            </span>
-            <button type="button" className="btn btn-ghost btn-sm btn-danger-ghost" onClick={clearAlerts}>
-              <Trash2 size={14} />
-              Effacer les alertes
-            </button>
-          </div>
-
           <div className="alerts-list">
             {groups.map(([key, group]) => (
               <section key={key} className="alerts-group">

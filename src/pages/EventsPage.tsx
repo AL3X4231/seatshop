@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowRight,
   CalendarDays,
   ChevronRight,
   Globe2,
@@ -25,6 +24,7 @@ import {
 } from '../lib/format';
 import type { EventDetail, EventSummary } from '../lib/types';
 import { PageHeader } from '../components/PageHeader';
+import { ActionMenu } from '../components/ActionMenu';
 import { StatusPill } from '../components/StatusPill';
 import { EmptyState } from '../components/EmptyState';
 import { Drawer } from '../components/Drawer';
@@ -349,10 +349,17 @@ export function EventsPage() {
         }
         actions={
           mode === 'demo' ? (
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/listings')}>
-              Voir l’inventaire
-              <ArrowRight size={16} />
-            </button>
+            <ActionMenu
+              label="Actions sur le catalogue"
+              items={[
+                {
+                  id: 'inventory',
+                  label: 'Voir l’inventaire',
+                  icon: Ticket,
+                  onSelect: () => navigate('/listings'),
+                },
+              ]}
+            />
           ) : null
         }
       />

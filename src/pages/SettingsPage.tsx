@@ -50,6 +50,7 @@ import {
 } from '../lib/notifications';
 import { formatDateTime } from '../lib/format';
 import { PageHeader } from '../components/PageHeader';
+import { ActionMenu } from '../components/ActionMenu';
 import { StatusPill } from '../components/StatusPill';
 import { Modal } from '../components/Modal';
 
@@ -102,6 +103,37 @@ function SettingRow({
       </div>
       <div className="setting-row-control">{children}</div>
     </div>
+  );
+}
+
+function LinkRow({
+  icon: Icon,
+  title,
+  description,
+  onClick,
+  destructive = false,
+}: {
+  icon: typeof Settings2;
+  title: string;
+  description?: string;
+  onClick: () => void;
+  destructive?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className={`settings-link-row ${destructive ? 'is-destructive' : ''}`}
+      onClick={onClick}
+    >
+      <span className="settings-link-icon">
+        <Icon size={17} strokeWidth={1.9} />
+      </span>
+      <span className="settings-link-text">
+        <strong>{title}</strong>
+        {description ? <span>{description}</span> : null}
+      </span>
+      <ChevronRight size={17} className="settings-link-chevron" />
+    </button>
   );
 }
 
@@ -330,12 +362,6 @@ export function SettingsPage() {
       <PageHeader
         title="Paramètres"
         subtitle="Compte, notifications, installation et données locales."
-        actions={
-          <button type="button" className="btn btn-secondary" onClick={() => void refreshAll()} disabled={mode === 'demo'}>
-            <RefreshCw size={16} />
-            Actualiser
-          </button>
-        }
       />
 
       <div className="settings-layout">
@@ -434,26 +460,23 @@ export function SettingsPage() {
                   </p>
                 </div>
 
-                <div className="settings-actions-row">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
+                <div className="settings-link-list">
+                  <LinkRow
+                    icon={KeyRound}
+                    title="Changer de clé API"
+                    description="Se déconnecter puis utiliser une autre clé Seatiks."
                     onClick={() => {
                       signOut();
                       navigate('/login', { replace: true });
                     }}
-                  >
-                    <KeyRound size={16} />
-                    Changer de clé
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-danger-ghost"
+                  />
+                  <LinkRow
+                    icon={Trash2}
+                    title="Réinitialiser l’application"
+                    description="Supprime la clé, les préférences, le cache et les alertes."
                     onClick={() => setConfirmReset(true)}
-                  >
-                    <Trash2 size={16} />
-                    Réinitialiser l’application
-                  </button>
+                    destructive
+                  />
                 </div>
               </>
             ) : (
@@ -462,22 +485,22 @@ export function SettingsPage() {
                   Vous explorez la démonstration. Aucune clé API n’est utilisée. Les ventes simulées
                   restent sur cet appareil.
                 </p>
-                <div className="settings-actions-row">
-                  <button type="button" className="btn btn-secondary" onClick={() => resetDemo()}>
-                    <RotateCcw size={16} />
-                    Réinitialiser la démo
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
+                <div className="settings-link-list">
+                  <LinkRow
+                    icon={RotateCcw}
+                    title="Réinitialiser la démo"
+                    description="Restaure les ventes et alertes de démonstration."
+                    onClick={() => resetDemo()}
+                  />
+                  <LinkRow
+                    icon={KeyRound}
+                    title="Connecter mon compte"
+                    description="Utiliser une clé API Seatiks en lecture seule."
                     onClick={() => {
                       signOut();
                       navigate('/login', { replace: true });
                     }}
-                  >
-                    <KeyRound size={16} />
-                    Connecter mon compte
-                  </button>
+                  />
                 </div>
               </div>
             )}
@@ -616,28 +639,45 @@ export function SettingsPage() {
                     {pushBusy ? <span className="spinner" /> : <Server size={16} />}
                     {pushSubscribed ? 'Mettre à jour' : 'Connecter'}
                   </button>
-                  {pushSubscribed ? (
-                    <>
-                      <button type="button" className="btn btn-secondary" onClick={() => void testPush()} disabled={pushBusy}>
-                        <BellRing size={15} />
-                        Tester
-                      </button>
-                      <button type="button" className="btn btn-ghost btn-danger-ghost" onClick={() => void disconnectPush()} disabled={pushBusy}>
-                        Déconnecter
-                      </button>
-                    </>
-                  ) : null}
-                  {settings.pushServerUrl ? (
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setConfirmResend(true)}
-                      disabled={pushBusy}
-                    >
-                      <Send size={15} />
-                      Renvoyer la dernière vente
-                    </button>
-                  ) : null}
+                  <ActionMenu
+                    label="Actions des notifications push"
+                    items={[
+                      ...(pushSubscribed
+                        ? [
+                            {
+                              id: 'test-push',
+                              label: 'Envoyer une notification de test',
+                              icon: BellRing,
+                              onSelect: () => void testPush(),
+                              disabled: pushBusy,
+                            },
+                          ]
+                        : []),
+                      ...(settings.pushServerUrl
+                        ? [
+                            {
+                              id: 'resend',
+                              label: 'Renvoyer la dernière vente',
+                              icon: Send,
+                              onSelect: () => setConfirmResend(true),
+                              disabled: pushBusy,
+                            },
+                          ]
+                        : []),
+                      ...(pushSubscribed
+                        ? [
+                            {
+                              id: 'disconnect',
+                              label: 'Déconnecter cet appareil',
+                              icon: WifiOff,
+                              onSelect: () => void disconnectPush(),
+                              destructive: true,
+                              disabled: pushBusy,
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
                 </div>
                 {pushError ? <div className="form-error">{pushError}</div> : null}
               </div>
@@ -896,21 +936,28 @@ export function SettingsPage() {
               </div>
             </div>
 
-            <div className="settings-actions-row settings-actions-tight">
-              <button type="button" className="btn btn-secondary btn-sm" onClick={onClearCache}>
-                <RefreshCw size={15} />
-                Vider le cache
-              </button>
+            <div className="settings-link-list">
+              <LinkRow
+                icon={RefreshCw}
+                title="Vider le cache"
+                description="Recharge les données depuis Seatiks ou la démo."
+                onClick={onClearCache}
+              />
               {mode === 'demo' ? (
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => resetDemo()}>
-                  <RotateCcw size={15} />
-                  Réinitialiser la démo
-                </button>
+                <LinkRow
+                  icon={RotateCcw}
+                  title="Réinitialiser la démo"
+                  description="Restaure les ventes et alertes fictives."
+                  onClick={() => resetDemo()}
+                />
               ) : null}
-              <button type="button" className="btn btn-ghost btn-sm btn-danger-ghost" onClick={() => setConfirmReset(true)}>
-                <Trash2 size={15} />
-                Tout effacer
-              </button>
+              <LinkRow
+                icon={Trash2}
+                title="Tout effacer sur cet appareil"
+                description="Clé API, préférences, cache et alertes."
+                onClick={() => setConfirmReset(true)}
+                destructive
+              />
             </div>
 
             <p className="settings-hint">
@@ -974,17 +1021,6 @@ export function SettingsPage() {
               </button>
             </div>
           </Section>
-
-          <div className="settings-danger">
-            <div>
-              <strong>Zone sensible</strong>
-              <span>Réinitialise la clé API, les préférences, le cache et les alertes de cet appareil.</span>
-            </div>
-            <button type="button" className="btn btn-danger" onClick={() => setConfirmReset(true)}>
-              <Trash2 size={16} />
-              Tout réinitialiser
-            </button>
-          </div>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Bell,
   CloudOff,
@@ -14,8 +14,8 @@ import { useData } from '../context/DataContext';
 import { useInstall } from '../context/InstallContext';
 import { useToast } from '../context/ToastContext';
 import { timeAgo } from '../lib/format';
-import { pageSection, pageTitle } from '../lib/nav';
 import { playSaleSound } from '../lib/notifications';
+import { ActionMenu } from './ActionMenu';
 import { Avatar } from './Avatar';
 import { Logo } from './Logo';
 
@@ -25,15 +25,11 @@ type TopBarProps = {
 };
 
 export function TopBar({ onOpenMenu, onOpenSearch }: TopBarProps) {
-  const location = useLocation();
   const navigate = useNavigate();
   const { settings, updateSettings, mode } = useAuth();
   const { sync, refreshAll, unreadCount, online } = useData();
   const { openInstall, installed } = useInstall();
   const { toast } = useToast();
-
-  const title = pageTitle(location.pathname);
-  const section = pageSection(location.pathname);
 
   const toggleSound = async () => {
     const next = !settings.soundEnabled;
@@ -51,36 +47,41 @@ export function TopBar({ onOpenMenu, onOpenSearch }: TopBarProps) {
     }
   };
 
+  const syncLabel = !online
+    ? 'Hors ligne'
+    : sync.refreshing
+      ? 'Synchronisation…'
+      : sync.lastSync
+        ? `Synchronisé ${timeAgo(sync.lastSync)}`
+        : 'En attente de synchronisation';
+
   return (
     <header className="topbar">
       <div className="topbar-left">
-        <button type="button" className="icon-btn topbar-menu" onClick={onOpenMenu} aria-label="Ouvrir le menu">
+        <button
+          type="button"
+          className="icon-btn topbar-menu"
+          onClick={onOpenMenu}
+          aria-label="Ouvrir le menu"
+        >
           <Menu size={20} />
         </button>
-        <div className="topbar-mobile-logo">
-          <Logo size={28} withText={false} />
-        </div>
-        <div className="topbar-heading">
-          <div className="topbar-breadcrumb">
-            <span>SeatShop</span>
-            <span className="topbar-slash">/</span>
-            <span>{section}</span>
-          </div>
-          <div className="topbar-title">{title}</div>
-        </div>
-        <div className={`topbar-sync ${sync.error ? 'is-error' : ''}`} title={sync.error || undefined}>
-          <span className="topbar-sync-dot" />
+
+        <Link to="/" className="topbar-brand" aria-label="SeatShop — accueil">
+          <Logo size={26} withText={false} />
+          <span className="topbar-brand-text">
+            <span className="topbar-brand-name">SeatShop</span>
+            <span className="topbar-brand-sub">{settings.storeName || 'Seatiks Seller'}</span>
+          </span>
+        </Link>
+
+        <div className={`topbar-sync ${sync.error ? 'is-error' : ''}`} title={sync.error || syncLabel}>
           {!online ? (
-            <>
-              <CloudOff size={13} /> Hors ligne
-            </>
-          ) : sync.refreshing ? (
-            'Synchronisation…'
-          ) : sync.lastSync ? (
-            `Synchronisé ${timeAgo(sync.lastSync)}`
+            <CloudOff size={13} />
           ) : (
-            'En attente de synchronisation'
+            <span className="topbar-sync-dot" />
           )}
+          <span>{syncLabel}</span>
         </div>
       </div>
 
@@ -102,27 +103,6 @@ export function TopBar({ onOpenMenu, onOpenSearch }: TopBarProps) {
 
         <button
           type="button"
-          className={`icon-btn topbar-refresh ${sync.refreshing ? 'is-spinning' : ''}`}
-          onClick={() => void refreshAll()}
-          aria-label="Actualiser les données"
-          title="Actualiser"
-          disabled={mode === 'demo'}
-        >
-          <RefreshCw size={18} />
-        </button>
-
-        <button
-          type="button"
-          className={`icon-btn ${settings.soundEnabled ? 'is-active-soft' : ''}`}
-          onClick={() => void toggleSound()}
-          aria-label={settings.soundEnabled ? 'Désactiver le son' : 'Activer le son'}
-          title={settings.soundEnabled ? 'Son activé' : 'Son désactivé'}
-        >
-          {settings.soundEnabled ? <Volume2 size={19} /> : <VolumeX size={19} />}
-        </button>
-
-        <button
-          type="button"
           className="icon-btn topbar-bell"
           onClick={() => navigate('/alerts')}
           aria-label={`Alertes${unreadCount ? `, ${unreadCount} non lues` : ''}`}
@@ -133,16 +113,35 @@ export function TopBar({ onOpenMenu, onOpenSearch }: TopBarProps) {
           ) : null}
         </button>
 
-        {!installed ? (
-          <button
-            type="button"
-            className="btn btn-secondary topbar-install"
-            onClick={openInstall}
-          >
-            <Download size={16} />
-            <span>Installer</span>
-          </button>
-        ) : null}
+        <ActionMenu
+          label="Actions rapides"
+          items={[
+            {
+              id: 'refresh',
+              label: sync.refreshing ? 'Synchronisation…' : 'Actualiser les données',
+              icon: RefreshCw,
+              onSelect: () => void refreshAll(),
+              disabled: mode === 'demo' || sync.refreshing,
+            },
+            {
+              id: 'sound',
+              label: settings.soundEnabled ? 'Son de vente activé' : 'Activer le son de vente',
+              icon: settings.soundEnabled ? Volume2 : VolumeX,
+              onSelect: () => void toggleSound(),
+              checked: settings.soundEnabled,
+            },
+            ...(!installed
+              ? [
+                  {
+                    id: 'install',
+                    label: 'Installer l’application',
+                    icon: Download,
+                    onSelect: openInstall,
+                  },
+                ]
+              : []),
+          ]}
+        />
 
         <button
           type="button"

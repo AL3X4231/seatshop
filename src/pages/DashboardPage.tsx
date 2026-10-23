@@ -44,6 +44,7 @@ import {
   requestNotificationPermission,
 } from '../lib/notifications';
 import { loadPushEndpoint } from '../lib/storage';
+import { ActionMenu } from '../components/ActionMenu';
 import { PageHeader } from '../components/PageHeader';
 import { RevenueChart, type RevenuePoint } from '../components/RevenueChart';
 import { Sparkline } from '../components/Sparkline';
@@ -287,10 +288,18 @@ export function DashboardPage() {
         actions={
           <>
             {mode === 'demo' ? (
-              <button type="button" className="btn btn-secondary" onClick={() => void onSimulate()} disabled={simulating}>
-                <Sparkles size={16} />
-                {simulating ? 'Vente…' : 'Simuler une vente'}
-              </button>
+              <ActionMenu
+                label="Autres actions"
+                items={[
+                  {
+                    id: 'simulate',
+                    label: simulating ? 'Vente en cours…' : 'Simuler une vente',
+                    icon: Sparkles,
+                    onSelect: () => void onSimulate(),
+                    disabled: simulating,
+                  },
+                ]}
+              />
             ) : null}
             <Link to="/sales" className="btn btn-primary">
               Voir les ventes

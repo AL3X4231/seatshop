@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
-  ArrowUpRight,
   CalendarDays,
   ChevronRight,
   Copy,
   Download,
   Layers,
   MapPin,
+  RefreshCw,
   Search,
   ShoppingBag,
   Store,
@@ -30,6 +30,7 @@ import {
 } from '../lib/format';
 import type { Listing } from '../lib/types';
 import { PageHeader } from '../components/PageHeader';
+import { ActionMenu } from '../components/ActionMenu';
 import { StatusPill } from '../components/StatusPill';
 import { MarketplaceAvatar } from '../components/Avatar';
 import { EmptyState } from '../components/EmptyState';
@@ -100,14 +101,11 @@ function ListingDetail({
           <div className="drawer-footer-row">
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn btn-primary"
               onClick={() => navigate(`/events/${listing.event.id}`)}
             >
               <CalendarDays size={16} />
               Voir l’événement
-            </button>
-            <button type="button" className="btn btn-primary" onClick={onClose}>
-              Fermer
             </button>
           </div>
         ) : null
@@ -459,21 +457,25 @@ export function ListingsPage() {
           </>
         }
         actions={
-          <>
-            <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!filtered.length}>
-              <Download size={16} />
-              Exporter
-            </button>
-            <button
-              type="button"
-              className={`btn btn-primary ${sync.refreshing ? 'is-loading' : ''}`}
-              onClick={() => void refreshAll()}
-              disabled={mode === 'demo' || sync.refreshing}
-            >
-              <ArrowUpRight size={16} />
-              Actualiser
-            </button>
-          </>
+          <ActionMenu
+            label="Actions sur l’inventaire"
+            items={[
+              {
+                id: 'export',
+                label: 'Exporter en CSV',
+                icon: Download,
+                onSelect: exportCsv,
+                disabled: !filtered.length,
+              },
+              {
+                id: 'refresh',
+                label: sync.refreshing ? 'Synchronisation…' : 'Actualiser les données',
+                icon: RefreshCw,
+                onSelect: () => void refreshAll(),
+                disabled: mode === 'demo' || sync.refreshing,
+              },
+            ]}
+          />
         }
       />
 

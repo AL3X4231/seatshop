@@ -178,8 +178,8 @@ export function periodStart(period: Period): Date | null {
 export function periodLabel(period: Period): string {
   return {
     today: "Aujourd'hui",
-    '7d': '7 derniers jours',
-    '30d': '30 derniers jours',
+    '7d': '7 jours',
+    '30d': '30 jours',
     all: 'Tout',
   }[period];
 }

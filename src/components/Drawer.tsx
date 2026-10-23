@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 type DrawerProps = {
   open: boolean;
@@ -50,19 +50,15 @@ export function Drawer({
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="drawer-header">
-          <button type="button" className="drawer-back" onClick={onClose} aria-label="Retour">
-            <ArrowLeft size={18} />
-            <span>Retour</span>
-          </button>
-          <button type="button" className="icon-btn drawer-close" onClick={onClose} aria-label="Fermer">
-            <X size={19} />
-          </button>
           <div className="drawer-heading">
             {eyebrow ? <div className="drawer-eyebrow">{eyebrow}</div> : null}
             {title ? <div className="drawer-title">{title}</div> : null}
             {subtitle ? <div className="drawer-subtitle">{subtitle}</div> : null}
           </div>
           {headerActions ? <div className="drawer-header-actions">{headerActions}</div> : null}
+          <button type="button" className="icon-btn drawer-close" onClick={onClose} aria-label="Fermer">
+            <X size={19} />
+          </button>
         </div>
         <div className="drawer-body">{children}</div>
         {footer ? <div className="drawer-footer">{footer}</div> : null}

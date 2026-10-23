@@ -1,24 +1,16 @@
-import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Bell,
   CalendarDays,
   ChevronRight,
-  Download,
-  ExternalLink,
   LayoutDashboard,
   Settings,
   ShoppingBag,
-  Sparkles,
   Ticket,
-  Volume2,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { useInstall } from '../context/InstallContext';
-import { useToast } from '../context/ToastContext';
-import { playSaleSound } from '../lib/notifications';
 import { Avatar } from './Avatar';
 import { Logo } from './Logo';
 import { ModePill } from './StatusPill';
@@ -52,7 +44,7 @@ function NavItem({
       className={({ isActive }) => `nav-item ${isActive ? 'is-active' : ''}`}
       onClick={onClick}
     >
-      <Icon size={18} strokeWidth={1.9} className="nav-icon" />
+      <Icon size={19} strokeWidth={1.9} className="nav-icon" />
       <span className="nav-label">{label}</span>
       {badge && badge > 0 ? (
         <span className={`nav-badge nav-badge-${badgeTone}`}>{badge > 99 ? '99+' : badge}</span>
@@ -63,31 +55,8 @@ function NavItem({
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { mode, settings } = useAuth();
-  const { sales, alerts, unreadCount, simulateSale } = useData();
-  const { openInstall, installed } = useInstall();
-  const { toast } = useToast();
-  const [simulating, setSimulating] = useState(false);
+  const { sales, alerts, unreadCount } = useData();
   const awaiting = sales.filter((sale) => sale.status === 'awaiting_delivery').length;
-
-  const onSimulate = async () => {
-    setSimulating(true);
-    try {
-      await simulateSale();
-    } finally {
-      window.setTimeout(() => setSimulating(false), 350);
-    }
-  };
-
-  const onTestSound = async () => {
-    const played = await playSaleSound(settings.volume, true);
-    toast({
-      title: played ? 'Cha-ching !' : 'Son bloqué par le navigateur',
-      message: played
-        ? 'Le son de vente fonctionne.'
-        : 'Touchez à nouveau l’écran, puis réessayez depuis les réglages.',
-      tone: played ? 'success' : 'info',
-    });
-  };
 
   return (
     <aside className={`sidebar ${open ? 'is-open' : ''}`} aria-label="Navigation principale">
@@ -137,52 +106,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       </nav>
 
       <div className="sidebar-spacer" />
-
-      {mode === 'demo' ? (
-        <button
-          type="button"
-          className={`sidebar-action sidebar-action-demo ${simulating ? 'is-loading' : ''}`}
-          onClick={() => void onSimulate()}
-          disabled={simulating}
-        >
-          <Sparkles size={17} />
-          <span>
-            <strong>{simulating ? 'Vente en cours…' : 'Simuler une vente'}</strong>
-            <small>Teste le son et les alertes</small>
-          </span>
-        </button>
-      ) : (
-        <button type="button" className="sidebar-action" onClick={() => void onTestSound()}>
-          <Volume2 size={17} />
-          <span>
-            <strong>Tester le son</strong>
-            <small>Le cha-ching Shopify</small>
-          </span>
-        </button>
-      )}
-
-      {!installed ? (
-        <button type="button" className="sidebar-install" onClick={openInstall}>
-          <span className="sidebar-install-icon">
-            <Download size={17} />
-          </span>
-          <span className="sidebar-install-text">
-            <strong>Installer l’application</strong>
-            <small>Gratuit · notifications incluses</small>
-          </span>
-          <ChevronRight size={15} />
-        </button>
-      ) : null}
-
-      <a
-        className="sidebar-external"
-        href="https://seatiks.com"
-        target="_blank"
-        rel="noreferrer"
-      >
-        <ExternalLink size={15} />
-        Ouvrir Seatiks
-      </a>
 
       <NavLink to="/settings" className="sidebar-account" onClick={onClose}>
         <Avatar name={settings.displayName || 'Compte Seatiks'} size={32} />
